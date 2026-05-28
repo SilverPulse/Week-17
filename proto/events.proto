@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package events.v1;
+
+// Описание сервиса
+service EventsService {
+  // Метод для создания мероприятия
+  rpc CreateEvent (CreateEventRequest) returns (EventResponse);
+  // Метод для получения списка всех мероприятий
+  rpc GetEvents (GetEventsRequest) returns (EventListResponse);
+}
+
+// Сущность - Мероприятие
+message Event {
+  string id = 1;
+  string title = 2;
+  string date = 3;
+  string location = 4;
+}
+
+// Запрос на создание
+message CreateEventRequest {
+  string title = 1;
+  string date = 2;
+  string location = 3;
+}
+
+// Ответ с одним мероприятием
+message EventResponse {
+  Event event = 1;
+}
+
+// Запрос списка (пока пустой, возвращаем всё)
+message GetEventsRequest {}
+
+// Ответ со списком мероприятий
+message EventListResponse {
+  repeated Event events = 1;
+}

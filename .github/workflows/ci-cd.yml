@@ -1,0 +1,25 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Клонирование репозитория
+      uses: actions/checkout@v3
+
+    - name: Сборка Docker-образа
+      run: |
+        docker build -t my-docker-registry/events-app:${{ github.sha }} ./events_service
+        
+    - name: Отправка образа в Registry
+      run: |
+        docker push my-docker-registry/events-app:${{ github.sha }}
+
+    - name: Деплой в Kubernetes
+      run: |
+        kubectl set image deployment/events-app events-container=my-docker-registry/events-app:${{ github.sha }}
+
+        kubectl rollout status deployment/events-app

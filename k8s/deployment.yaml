@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: events-app
+  labels:
+    app: events-app
+spec:
+  replicas: 3 
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: events-app
+  template:
+    metadata:
+      labels:
+        app: events-app
+    spec:
+      containers:
+      - name: events-container
+        image: events-s18-events_service:latest
+        ports:
+        - containerPort: 8277
+        
+        readinessProbe: 
+          tcpSocket:
+            port: 8277
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          
+        livenessProbe:
+          tcpSocket:
+            port: 8277
+          initialDelaySeconds: 15
+          periodSeconds: 20

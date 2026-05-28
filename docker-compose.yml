@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Брокер сообщений для слабой связности
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-s18
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Панель управления RabbitMQ
+    networks:
+      - events-net
+
+  # База данных для основного сервиса
+  postgres_db:
+    image: postgres:15
+    container_name: postgres-s18
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: events_db
+    networks:
+      - events-net
+
+  # 1. Основной gRPC сервис
+  events_service:
+    build: ./events_service
+    container_name: events-svc-s18
+    ports:
+      - "8277:8277"
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres_db:5432/events_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres_db
+      - rabbitmq
+    networks:
+      - events-net
+
+  # 2. Внешний REST API Gateway
+  api_gateway:
+    build: ./api_gateway
+    container_name: api-gateway-s18
+    ports:
+      - "8000:8000"
+    environment:
+      - GRPC_HOST=events_service
+      - GRPC_PORT=8277
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - events_service
+    networks:
+      - events-net
+
+  # 3. Асинхронный воркер уведомлений
+  notification_service:
+    build: ./notification_service
+    container_name: notification-svc-s18
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - rabbitmq
+    networks:
+      - events-net
+
+networks:
+  events-net:
+    driver: bridge
